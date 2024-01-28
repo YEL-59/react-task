@@ -6,21 +6,45 @@ const Problem2 = () => {
   const [modalCOpen, setModalCOpen] = useState(false);
   const [onlyEvenChecked, setOnlyEvenChecked] = useState(false);
   const [contacts, setContacts] = useState([]);
+  const [usContacts, setUsContacts] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  // Mock API endpoint, replace with the actual API endpoint
-  const apiEndpoint = "https://contact.mediusware.com/api/contacts";
+
+  const [countries, setCountries] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const apiEndpoint = "https://contact.mediusware.com/api/contacts/";
 
   useEffect(() => {
-    // Fetch contacts from the API
     fetchContacts();
   }, []);
+
+  useEffect(() => {
+    fetchCountries();
+  }, []);
+
+  const fetchCountries = async () => {
+    try {
+      const response = await fetch(apiEndpoint);
+      const data = await response.json();
+
+      const allCountries = data.results.map((contact) => contact.country.name);
+
+      setCountries(allCountries);
+    } catch (error) {
+      console.error("Error fetching countries:", error);
+    }
+  };
 
   const fetchContacts = async () => {
     try {
       const response = await fetch(apiEndpoint);
       const data = await response.json();
-      setContacts(data);
+
+      const usContactsData = data.results.filter(
+        (contact) => contact.country.name === "United States"
+      );
+
+      setUsContacts(usContactsData);
     } catch (error) {
       console.error("Error fetching contacts:", error);
     }
@@ -30,7 +54,7 @@ const Problem2 = () => {
     setModalAOpen(true);
     setModalBOpen(false);
     setModalCOpen(false);
-    // Update URL for Modal A
+
     window.history.pushState({}, "", "/modalA");
   };
 
@@ -38,7 +62,7 @@ const Problem2 = () => {
     setModalAOpen(false);
     setModalBOpen(true);
     setModalCOpen(false);
-    // Update URL for Modal B
+
     window.history.pushState({}, "", "/modalB");
   };
 
@@ -51,13 +75,13 @@ const Problem2 = () => {
 
   const closeModalA = () => {
     setModalAOpen(false);
-    // Restore the URL to the initial state when closing Modal A
+
     window.history.pushState({}, "", "/");
   };
 
   const closeModalB = () => {
     setModalBOpen(false);
-    // Restore the URL to the initial state when closing Modal B
+
     window.history.pushState({}, "", "/");
   };
 
@@ -69,33 +93,41 @@ const Problem2 = () => {
     setOnlyEvenChecked(!onlyEvenChecked);
   };
 
-
   const handleSearchInputChange = (event) => {
     const inputValue = event.target.value;
     setSearchTerm(inputValue);
 
-    // Delayed filtering after 300 milliseconds (adjust the delay as needed)
     setTimeout(() => {
-        filterContacts();
+      filterContacts();
     }, 300);
-};
+  };
 
-const handleSearchInputKeyPress = (event) => {
-    // Immediate filtering on hitting Enter key
-    if (event.key === 'Enter') {
-        filterContacts();
+  const handleSearchInputKeyPress = (event) => {
+    if (event.key === "Enter") {
+      filterContacts();
     }
-};
+  };
 
-const filterContacts = () => {
-    // You may include the search term as a parameter in your API request
-    // Replace the mock API endpoint with the actual API endpoint
+  const filterContacts = () => {
     const filteredApiEndpoint = `${apiEndpoint}?search=${searchTerm}`;
+
     fetch(filteredApiEndpoint)
-        .then(response => response.json())
-        .then(data => setContacts(data))
-        .catch(error => console.error('Error fetching filtered contacts:', error));
-};
+      .then((response) => response.json())
+      .then((data) => {
+        if (modalAOpen) {
+          setContacts(data.results);
+        } else if (modalBOpen) {
+          setUsContacts(
+            data.results.filter(
+              (contact) => contact.country.name === "United States"
+            )
+          );
+        }
+      })
+      .catch((error) =>
+        console.error("Error fetching filtered contacts:", error)
+      );
+  };
 
   return (
     <div className="container">
@@ -106,7 +138,7 @@ const filterContacts = () => {
             className="btn btn-lg btn-outline-primary"
             type="button"
             onClick={openModalA}
-            style={{ backgroundColor: '#46139f', borderColor: '#46139f' }}
+            style={{ backgroundColor: "#46139f", borderColor: "#46139f" }}
           >
             All Contacts
           </button>
@@ -114,14 +146,14 @@ const filterContacts = () => {
             className="btn btn-lg btn-outline-warning"
             type="button"
             onClick={openModalB}
-            style={{ backgroundColor: '#ff7f50', borderColor: '#ff7f50' }}
+            style={{ backgroundColor: "#ff7f50", borderColor: "#ff7f50" }}
           >
             US Contacts
           </button>
         </div>
       </div>
 
-      {/* Modal A */}
+      {/* modal A */}
       <div
         className={`modal ${modalAOpen ? "show" : ""}`}
         tabIndex="-1"
@@ -139,17 +171,28 @@ const filterContacts = () => {
               ></button>
             </div>
             <div className="modal-body">
-              {/* Content of Modal A goes here */}
+              <p>All Countries:</p>
+              <ul>
+                {countries.map((country, index) => (
+                  <li key={index} onClick={() => openModalC(country)}>
+                    {country}
+                  </li>
+                ))}
+              </ul>
 
               <input
-                                type="text"
-                                className="form-control mb-3"
-                                placeholder="Search contacts"
-                                value={searchTerm}
-                                onChange={handleSearchInputChange}
-                                onKeyPress={handleSearchInputKeyPress}
-                            />
-              <button className="btn "  style={{ backgroundColor: '#46139f', borderColor: '#46139f' }} onClick={openModalA}>
+                type="text"
+                className="form-control mb-3"
+                placeholder="Search contacts"
+                value={searchTerm}
+                onChange={handleSearchInputChange}
+                onKeyPress={handleSearchInputKeyPress}
+              />
+              <button
+                className="btn "
+                style={{ backgroundColor: "#46139f", borderColor: "#46139f" }}
+                onClick={openModalA}
+              >
                 Modal Button A
               </button>
               <button className="btn btn-secondary" onClick={openModalB}>
@@ -175,7 +218,7 @@ const filterContacts = () => {
         </div>
       </div>
 
-      {/* Modal B */}
+      {/* modal B */}
       <div
         className={`modal ${modalBOpen ? "show" : ""}`}
         tabIndex="-1"
@@ -194,18 +237,30 @@ const filterContacts = () => {
             </div>
             <div className="modal-body">
               {/* Content of Modal B goes here */}
+              <p>US Contacts:</p>
+              <ul>
+                {usContacts.map((contact) => (
+                  <li key={contact.id} onClick={() => openModalC(contact)}>
+                    {contact.phone}
+                  </li>
+                ))}
+              </ul>
               <input
-                                type="text"
-                                className="form-control mb-3"
-                                placeholder="Search contacts"
-                                value={searchTerm}
-                                onChange={handleSearchInputChange}
-                                onKeyPress={handleSearchInputKeyPress}
-                            />
+                type="text"
+                className="form-control mb-3"
+                placeholder="Search contacts"
+                value={searchTerm}
+                onChange={handleSearchInputChange}
+                onKeyPress={handleSearchInputKeyPress}
+              />
               <button className="btn btn-primary" onClick={openModalA}>
                 Modal Button A
               </button>
-              <button className="btn " onClick={openModalB}  style={{ backgroundColor: '#ff7f50', borderColor: '#ff7f50' }}>
+              <button
+                className="btn "
+                onClick={openModalB}
+                style={{ backgroundColor: "#ff7f50", borderColor: "#ff7f50" }}
+              >
                 Modal Button B
               </button>
               <button className="btn btn-danger" onClick={closeModalB}>
@@ -228,7 +283,7 @@ const filterContacts = () => {
         </div>
       </div>
 
-      {/* Modal C */}
+      {/* modal C */}
       <div
         className={`modal ${modalCOpen ? "show" : ""}`}
         tabIndex="-1"
@@ -251,7 +306,6 @@ const filterContacts = () => {
                   <p>Contact Details:</p>
                   <p>ID: {selectedContact.id}</p>
                   <p>Name: {selectedContact.name}</p>
-                  {/* Add other contact details as needed */}
                 </div>
               )}
               <button className="btn btn-danger" onClick={closeModalC}>
